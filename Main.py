@@ -25,7 +25,7 @@ import imutils
 #import featuremodule
 #import featurestest
 
-dormir = 1.5
+dormir = 1
 
 atraso = 2E9
 
@@ -40,8 +40,11 @@ check_delay = False # Só usar se os relógios ROS da Raspberry e do Linux deskt
 
 counter = 0
 
+maxImagens = 2
+
+listaFotos = []
+
 def roda_todo_frame(imagem):
-	print("frame")
 	global cv_image
 	global media_cor
 	global centro
@@ -51,11 +54,11 @@ def roda_todo_frame(imagem):
 	global media_feature
 	global centro_feature
 	global counter 
+	global listaFotos
 	now = rospy.get_rostime()
 	imgtime = imagem.header.stamp
 	lag = now-imgtime
 	delay = lag.nsecs
-	print("INICIO")
 	if delay > atraso and check_delay==True:
 		return
 	try:
@@ -64,7 +67,7 @@ def roda_todo_frame(imagem):
 		#scaneou(cv_image)
 		depois = time.clock()
 		#cv2.imwrite("Camera_"+ str(counter) + ".png", cv_image)
-		print("IMAGEM CRIADA")
+		listaFotos.append(cv_image)
 	except CvBridgeError as e:
 		print('ex', e)
 
@@ -85,20 +88,27 @@ def main():
 	recebedor = rospy.Subscriber("/bebop/image_raw/compressed", CompressedImage, roda_todo_frame, queue_size=10, buff_size = 2**24)
 
 	
-
+    
 	while not rospy.is_shutdown():
 		rospy.sleep(dormir)
 		counter+= 1
-		if counter <= 1:
-			result = cv_image
+		if counter >= maxImagens:
+			print("FIM")
+			result = listaFotos[0]
+			for i in range(len(listaFotos)):
+				imageA = result
+				imageB = listaFotos[i]
+				#imageA = imutils.resize(imageA, width=500)
+				#imageB = imutils.resize(imageB, width=500)
+				stitcher = Stitcher()
+				result = stitcher.stitch([imageA, imageB])
+			cv2.imwrite("CameraFinal.png", result)
+			print("IMAGEM CRIADA")
+			return
 
-		imageA = result
-		imageB = cv_image
-		imageA = imutils.resize(imageA, width=1000)
-		imageB = imutils.resize(imageB, width=1000)
+	
 
-		stitcher = Stitcher()
-		result = stitcher.stitch([imageA, imageB])
+
 
 
 
