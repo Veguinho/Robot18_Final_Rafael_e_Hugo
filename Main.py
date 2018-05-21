@@ -95,13 +95,12 @@ def main():
 		if counter >= maxImagens:
 			print("FIM")
 			result = listaFotos[0]
-			for i in range(len(listaFotos)):
-				imageA = result
+			for i in range(0, len(listaFotos)):
 				imageB = listaFotos[i]
 				#imageA = imutils.resize(imageA, width=500)
 				#imageB = imutils.resize(imageB, width=500)
 				stitcher = Stitcher()
-				result = stitcher.stitch([imageA, imageB])
+				result = stitcher.stitch([result, imageB])
 			cv2.imwrite("CameraFinal.png", result)
 			print("IMAGEM CRIADA")
 			return
