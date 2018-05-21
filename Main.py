@@ -19,6 +19,9 @@ import smach_ros
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import Imu
 import math
+from pyimagesearch.panorama import Stitcher
+import argparse
+import imutils
 #import featuremodule
 #import featurestest
 
@@ -60,7 +63,7 @@ def roda_todo_frame(imagem):
 		cv_image = bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
 		#scaneou(cv_image)
 		depois = time.clock()
-		cv2.imwrite("Camera_"+ str(counter) + ".png", cv_image)
+		#cv2.imwrite("Camera_"+ str(counter) + ".png", cv_image)
 		print("IMAGEM CRIADA")
 	except CvBridgeError as e:
 		print('ex', e)
@@ -81,42 +84,22 @@ def main():
 	#recebedor = rospy.Subscriber("/cv_camera/image_raw/compressed", CompressedImage, roda_todo_frame, queue_size=1, buff_size = 2**24)
 	recebedor = rospy.Subscriber("/bebop/image_raw/compressed", CompressedImage, roda_todo_frame, queue_size=10, buff_size = 2**24)
 
+	
+
 	while not rospy.is_shutdown():
 		rospy.sleep(dormir)
 		counter+= 1
+		if counter <= 1:
+			result = cv_image
 
+		imageA = result
+		imageB = cv_image
+		imageA = imutils.resize(imageA, width=1000)
+		imageB = imutils.resize(imageB, width=1000)
 
-	# Create a SMACH state machine
-	#sm = smach.StateMachine(outcomes=['terminei'])
+		stitcher = Stitcher()
+		result = stitcher.stitch([imageA, imageB])
 
-	# Open the container
-	# with sm:
-	# 	# Add states to the container
-	# 	#smach.StateMachine.add('LONGE', Longe(),
-	# 	#                       transitions={'ainda_longe':'ANDANDO',
-	# 	#                                    'perto':'terminei'})
-	# 	#smach.StateMachine.add('ANDANDO', Andando(),
-	# 	#                       transitions={'ainda_longe':'LONGE'})
-	# 	smach.StateMachine.add('GIRANDO', Girando(),
-	# 							transitions={'brecar':'PARAR',
-	# 							'ré': 'FUGIR',
-	# 							'girando': 'GIRANDO',
-	# 							'alinhou':'CENTRO'})
-	# 	smach.StateMachine.add('CENTRO', Centralizado(),
-	# 							transitions={'alinhando': 'GIRANDO',
-	# 							'alinhado':'CENTRO',
-	# 							'brecar':'PARAR'})
-	# 	smach.StateMachine.add('PARAR', Parar(),
-	# 							transitions={'girando': 'GIRANDO',
-	# 							'brecar':'PARAR'})
-	# 	smach.StateMachine.add('FUGIR', Fugir(),
-	# 							transitions={'girando': 'GIRANDO',
-	# 							'brecar':'PARAR',
-	# 							'ré' : 'FUGIR'})
-
-	# Execute SMACH plan
-	#outcome = sm.execute()
-	#rospy.spin()
 
 
 if __name__ == '__main__':
