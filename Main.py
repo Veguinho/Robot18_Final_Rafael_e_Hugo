@@ -39,8 +39,9 @@ cv_image = None
 check_delay = False # Só usar se os relógios ROS da Raspberry e do Linux desktop estiverem sincronizados
 
 counter = 0
+counter2 = 0
 
-maxImagens = 2
+maxImagens = 5
 
 listaFotos = []
 
@@ -55,19 +56,29 @@ def roda_todo_frame(imagem):
 	global centro_feature
 	global counter 
 	global listaFotos
+	global counter2
+
 	now = rospy.get_rostime()
 	imgtime = imagem.header.stamp
 	lag = now-imgtime
 	delay = lag.nsecs
-	if delay > atraso and check_delay==True:
+
+	if counter2%30 != 0:
+		counter2 += 1
 		return
 	try:
+		counter2 += 1
 		antes = time.clock()
 		cv_image = bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
 		#scaneou(cv_image)
 		depois = time.clock()
-		#cv2.imwrite("Camera_"+ str(counter) + ".png", cv_image)
-		listaFotos.append(cv_image)
+		if counter < maxImagens:
+			#rospy.sleep(dormir)
+			cv2.imwrite("Camera_"+ str(counter) + ".png", cv_image)
+			counter += 1
+			print(counter)
+			listaFotos.append(cv_image)
+
 	except CvBridgeError as e:
 		print('ex', e)
 
@@ -81,6 +92,8 @@ def main():
 	global menorDist
 	global aceleracao
 	global counter
+	global listaFotos
+
 	rospy.init_node('cor_estados')
 
 	# Para usar a webcam
@@ -90,18 +103,22 @@ def main():
 	
     
 	while not rospy.is_shutdown():
-		rospy.sleep(dormir)
-		counter+= 1
 		if counter >= maxImagens:
 			print("FIM")
-			result = listaFotos[0]
+			result = cv2.imread("Camera_0.png")
+			#result = imutils.resize(result, width=1000)
 			for i in range(0, len(listaFotos)):
-				imageB = listaFotos[i]
-				#imageA = imutils.resize(imageA, width=500)
-				#imageB = imutils.resize(imageB, width=500)
+				imageA = result
+				imageB = cv2.imread("Camera_" + str(i) + ".png")
+				#imageB = listaFotos[i]
+				#imageA = imutils.resize(imageA, width=1000)
+				#imageB = imutils.resize(imageB, width=1000)
 				stitcher = Stitcher()
-				result = stitcher.stitch([result, imageB])
-			cv2.imwrite("CameraFinal.png", result)
+				#print("IMAGEM A", imageA) 
+				#print("IMAGEM B", imageB) 
+				result = stitcher.stitch([imageA, imageB])
+				print("Stich de imagem_", i-1, "com imagem_", i)
+				cv2.imwrite("Camera_RESULT.png", result)
 			print("IMAGEM CRIADA")
 			return
 
