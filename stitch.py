@@ -29,22 +29,21 @@ import cv2
 
 multiplicador = 3
 
-
 result = cv2.imread("Camera_0.png")
+#result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
 
-fundo = np.zeros((multiplicador*result.shape[0],multiplicador*result.shape[1],3), dtype=np.uint8)
+#fundo = np.zeros((multiplicador*result.shape[0],multiplicador*result.shape[1],3), dtype=np.uint8)
 
-cv2.imwrite("fundo.png", fundo)
+#cv2.imwrite("fundo.png", fundo)
 
-o = result.shape
+#o = result.shape
 
-fundo[o[0]:(o[0]+o[0]), o[1]:(o[1]+o[1]),0:-1] = result[:,:,0:-1]
+#fundo[o[0]:(o[0]+o[0]), o[1]:(o[1]+o[1]),0:3] = result[:,:,0:3]
 
-cv2.imwrite("fundocopiado.png", fundo) 
-
+#cv2.imwrite("fundocopiado.png", fundo) 
 #result = imutils.resize(result, width=1000)
-result = fundo
-for i in range(1,5):
+#result = fundo
+for i in range(1,3):
 	imageA = result
 	imageB = cv2.imread("Camera_" + str(i) + ".png")
 	#imageB = listaFotos[i]
