@@ -19,9 +19,12 @@ import smach_ros
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import Imu
 import math
-from pyimagesearch.panorama import Stitcher
 import argparse
 import imutils
+from std_msgs.msg import Empty
+import keyboard
+from pano import Stitch
+
 #import featuremodule
 #import featurestest
 
@@ -41,9 +44,11 @@ check_delay = False # Só usar se os relógios ROS da Raspberry e do Linux deskt
 counter = 0
 counter2 = 0
 
-maxImagens = 5
+maxImagens = 4
 
 listaFotos = []
+
+estado = "landed"
 
 def roda_todo_frame(imagem):
 	global cv_image
@@ -63,8 +68,9 @@ def roda_todo_frame(imagem):
 	lag = now-imgtime
 	delay = lag.nsecs
 
-	if counter2%30 != 0:
+	if counter2%50 != 0:
 		counter2 += 1
+
 		return
 	try:
 		counter2 += 1
@@ -72,19 +78,20 @@ def roda_todo_frame(imagem):
 		cv_image = bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
 		#scaneou(cv_image)
 		depois = time.clock()
-		if counter < maxImagens:
+		if counter < maxImagens and timerW == 1:
 			#rospy.sleep(dormir)
-			cv2.imwrite("Camera_"+ str(counter) + ".png", cv_image)
+			cv2.imwrite("images/Camera_"+ str(counter) + ".png", cv_image)
 			counter += 1
 			print(counter)
 			listaFotos.append(cv_image)
+
 
 	except CvBridgeError as e:
 		print('ex', e)
 
 
 
-
+timerW = 0
 # main
 def main():
 	global velocidade_saida
@@ -93,33 +100,39 @@ def main():
 	global aceleracao
 	global counter
 	global listaFotos
+	global estado
+	global timerW
 
 	rospy.init_node('cor_estados')
 
 	# Para usar a webcam
 	#recebedor = rospy.Subscriber("/cv_camera/image_raw/compressed", CompressedImage, roda_todo_frame, queue_size=1, buff_size = 2**24)
 	recebedor = rospy.Subscriber("/bebop/image_raw/compressed", CompressedImage, roda_todo_frame, queue_size=10, buff_size = 2**24)
+	takeoff_publisher = rospy.Publisher("bebop/takeoff", Empty, queue_size = 1)
+	land_publisher = rospy.Publisher("bebop/land", Empty, queue_size = 1)
+	velocidade_saida = rospy.Publisher("bebop/cmd_vel", Twist, queue_size = 1)
 
-	
-    
+	timerW = 0
+
+
+
 	while not rospy.is_shutdown():
+		if estado == "landed":
+			rospy.sleep(0.5)
+			takeoff_publisher.publish(Empty())
+			estado = "voando"
+			print(estado)
+			rospy.sleep(2.3)
+			timerW = 1
+
+		vel = Twist(Vector3(0, 0.2, 0), Vector3(0, 0, 0))
+		rospy.sleep(0.1)
+		velocidade_saida.publish(vel)
+
 		if counter >= maxImagens:
+			rospy.sleep(0.5)
+			land_publisher.publish(Empty())
 			print("FIM")
-			result = cv2.imread("Camera_0.png")
-			#result = imutils.resize(result, width=1000)
-			for i in range(0, len(listaFotos)):
-				imageA = result
-				imageB = cv2.imread("Camera_" + str(i) + ".png")
-				#imageB = listaFotos[i]
-				#imageA = imutils.resize(imageA, width=1000)
-				#imageB = imutils.resize(imageB, width=1000)
-				stitcher = Stitcher()
-				#print("IMAGEM A", imageA) 
-				#print("IMAGEM B", imageB) 
-				result = stitcher.stitch([imageA, imageB])
-				print("Stich de imagem_", i-1, "com imagem_", i)
-				cv2.imwrite("Camera_RESULT.png", result)
-			print("IMAGEM CRIADA")
 			return
 
 	
@@ -130,3 +143,17 @@ def main():
 
 if __name__ == '__main__':
 	main()
+	try:
+		args = sys.argv[1]
+	except:
+		args = "txtlists/files1.txt"
+	finally:
+		print "Parameters : ", args
+	s = Stitch(args)
+	s.leftshift()
+	# s.showImage('left')
+	s.rightshift()
+	print "Pronto!"
+	cv2.imwrite("imagem_final.jpg", s.leftImage)
+	print "Imagem Final pronta!"
+	cv2.destroyAllWindows()
